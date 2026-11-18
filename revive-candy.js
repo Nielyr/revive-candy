@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Torn - Revive Candy Button
 // @namespace    revive-candy
+// @updateURL    https://github.com/Nielyr/revive-candy/raw/main/revive-candy.js
 // @downloadURL  https://github.com/Nielyr/revive-candy/raw/main/revive-candy.js
-// @version      1.1.1
-// @description  Adds a candy button to the Torn mini-profile that sends an item with a preset message
+// @version      1.2.0
+// @description  Adds a candy button to the Torn mini-profile that sends a direct message, then a candy with a preset message
 // @match        https://www.torn.com/*
 // @grant        none
 // @run-at       document-idle
@@ -15,7 +16,14 @@
   // ---------- Settings ----------
   const ITEM_ID = 310;
   const AMOUNT = 1;
-  const MESSAGE = 'Have a good flight! :)';
+  const MESSAGE = 'Have a good flight! :)'; // message attached to the candy
+  const DM_MESSAGE =
+    'I am sincerely sorry about your overdose. Thank you for being such a wonderful patient.\n' +
+    'Feel free to add me in your friend list and poke me whenever you need a revive. ' +
+    "I'm very active and always have some energy available for a revive. ^^ " +
+    'And you can always count on my faction (WTF Healer) for a revive contract for your wars.\n' +
+    'I also sent you a little treat for your flight to Switzerland! :D';
+  const CANDY_DELAY_MS = 5000; // wait between the DM and the candy
   const CONFIRM_BEFORE_SENDING = false; // set to true to get a confirm() popup before each send
   const LOW_QTY = 50;        // candy turns yellow below this quantity
   const CRITICAL_QTY = 10;   // candy turns red below this quantity (or when none left)
@@ -49,13 +57,36 @@
     setTimeout(() => el.remove(), 4000);
   }
 
-  async function sendCandy(userId, btn) {
+  async function sendDM(userId) {
+    try {
+      const res = await fetch('https://www.torn.com/tchat/dm/' + encodeURIComponent(userId) + '/messages', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ content: DM_MESSAGE }),
+      });
+      if (!res.ok) {
+        const raw = await res.text().catch(() => '');
+        toast('Candy: DM failed (' + res.status + ') ' + raw.replace(/<[^>]*>/g, ' ').trim().slice(0, 120), false);
+        return false;
+      }
+      toast('Message sent!', true);
+      return true;
+    } catch (err) {
+      toast('Candy: DM network error - ' + err.message, false);
+      return false;
+    }
+  }
+
+  async function sendCandy(userId) {
     const rfcv = getRFC();
     if (!rfcv) {
       toast('Candy: could not find the rfcv token (rfc_v cookie).', false);
       return;
     }
-    if (CONFIRM_BEFORE_SENDING && !confirm('Send candy to user ' + userId + '?')) return;
 
     const body = new URLSearchParams({
       step: 'sendItemAction',
@@ -66,8 +97,6 @@
       amount: String(AMOUNT),
     });
 
-    btn.style.opacity = '0.5';
-    btn.style.pointerEvents = 'none';
     try {
       const res = await fetch('https://www.torn.com/item.php?rfcv=' + encodeURIComponent(rfcv), {
         method: 'POST',
@@ -97,6 +126,18 @@
       }
     } catch (err) {
       toast('Candy: network error - ' + err.message, false);
+    }
+  }
+
+  // Click flow: DM first, then the candy after a delay. The candy is skipped if the DM fails.
+  async function runSequence(userId, btn) {
+    if (CONFIRM_BEFORE_SENDING && !confirm('Send message and candy to user ' + userId + '?')) return;
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+    try {
+      if (!(await sendDM(userId))) return;
+      await new Promise((r) => setTimeout(r, CANDY_DELAY_MS));
+      await sendCandy(userId);
     } finally {
       btn.style.opacity = '';
       btn.style.pointerEvents = '';
@@ -164,7 +205,7 @@
       if (color) p.style.setProperty('fill', color, 'important');
       else p.style.removeProperty('fill');
     });
-    btn.title = 'Send candy' + (stockQty !== null ? ' (' + stockQty + ' left)' : '');
+    btn.title = 'Send revive message + candy' + (stockQty !== null ? ' (' + stockQty + ' left)' : '');
   }
 
   function refreshAllButtons() {
@@ -226,7 +267,7 @@
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      sendCandy(userId, btn);
+      runSequence(userId, btn);
     });
 
     list.appendChild(btn);
