@@ -2,7 +2,7 @@
 // @name         Torn - Revive Candy Button
 // @namespace    revive-candy
 // @downloadURL  https://github.com/Nielyr/revive-candy/raw/main/revive-candy.js
-// @version      1.1.0
+// @version      1.1.1
 // @description  Adds a candy button to the Torn mini-profile that sends an item with a preset message
 // @match        https://www.torn.com/*
 // @grant        none
@@ -15,7 +15,7 @@
   // ---------- Settings ----------
   const ITEM_ID = 310;
   const AMOUNT = 1;
-  const MESSAGE = 'I am sincerely sorry about your overdose. Thank you for being such a wonderful patient. Here is a little treat for your flight to Switzerland. :)';
+  const MESSAGE = 'Have a good flight! :)';
   const CONFIRM_BEFORE_SENDING = false; // set to true to get a confirm() popup before each send
   const LOW_QTY = 50;        // candy turns yellow below this quantity
   const CRITICAL_QTY = 10;   // candy turns red below this quantity (or when none left)
