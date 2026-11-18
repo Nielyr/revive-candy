@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Torn - Mini-profile Candy Button
+// @name         Torn - Revive Candy Button
 // @namespace    revive-candy
 // @downloadURL  https://github.com/Nielyr/revive-candy/raw/main/revive-candy.js
-// @version      1.0.0
+// @version      1.1.0
 // @description  Adds a candy button to the Torn mini-profile that sends an item with a preset message
 // @match        https://www.torn.com/*
 // @grant        none
